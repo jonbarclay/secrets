@@ -43,7 +43,11 @@ upsert_env() {
   local value="$2"
 
   if grep -q "^${key}=" "$ENV_FILE"; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+  else
     sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+  fi
   else
     echo "${key}=${value}" >>"$ENV_FILE"
   fi
@@ -55,7 +59,7 @@ ensure_fernet_key() {
   fi
 
   local key
-  key=$(python - <<'PY'
+  key=$(python3 - <<'PY'
 import base64, os
 print(base64.urlsafe_b64encode(os.urandom(32)).decode())
 PY

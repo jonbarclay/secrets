@@ -44,7 +44,7 @@ class PasswordPatternError(ValueError):
 
 
 def sanitize_plaintext(value: str) -> str:
-    cleaned = bleach.clean(value, strip=True, tags=[], attributes={}, styles=[])
+    cleaned = bleach.clean(value, strip=True, tags=[], attributes={})
     cleaned = html.escape(cleaned, quote=True)
     for pattern in FORBIDDEN_PATTERNS:
         if pattern.search(cleaned):

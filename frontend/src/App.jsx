@@ -1,6 +1,15 @@
 import React from 'react'
+import { Routes, Route } from 'react-router-dom'
 import SecretCreation from './components/SecretCreation'
-import PatternGenerator from './components/PatternGenerator'
+import SecretRetrieval from './components/SecretRetrieval'
+
+function Home() {
+    return (
+      <main className="flex justify-center p-6">
+        <SecretCreation />
+      </main>
+    )
+}
 
 export default function App() {
   return (
@@ -9,10 +18,13 @@ export default function App() {
         <h1 className="text-3xl font-semibold">Secret Vault</h1>
         <p className="text-sm text-green-100">Secure, one-time secret sharing with burn-on-view support.</p>
       </header>
-      <main className="grid gap-6 p-6 md:grid-cols-2">
-        <SecretCreation />
-        <PatternGenerator />
-      </main>
+      
+      <div className="container mx-auto max-w-6xl">
+        <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/secret/:id" element={<main className="p-6 max-w-2xl mx-auto"><SecretRetrieval /></main>} />
+        </Routes>
+      </div>
     </div>
   )
 }

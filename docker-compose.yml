@@ -23,7 +23,7 @@ services:
       TLS_CERT_FILE: ${TLS_CERT_FILE:-/certs/localhost.crt}
       TLS_KEY_FILE: ${TLS_KEY_FILE:-/certs/localhost.key}
     ports:
-      - "443:${SECRET_BACKEND_PORT:-8443}"
+      - "8443:${SECRET_BACKEND_PORT:-8443}"
     depends_on:
       - redis
     volumes:
@@ -33,6 +33,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE: ${VITE_API_BASE}
     env_file:
       - .env
     environment:
@@ -41,7 +43,7 @@ services:
       TLS_CERT_FILE: ${TLS_CERT_FILE:-/certs/localhost.crt}
       TLS_KEY_FILE: ${TLS_KEY_FILE:-/certs/localhost.key}
     ports:
-      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
+      - "443:${FRONTEND_PORT:-5173}"
     depends_on:
       - backend
     volumes:

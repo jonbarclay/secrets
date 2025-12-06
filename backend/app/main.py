@@ -54,12 +54,17 @@ async def shutdown_event():
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=[
+        settings.frontend_origin,
+        "https://localhost",
+        "https://localhost:443",
+        "http://localhost",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.exception_handler(SanitizationError)
 async def sanitization_exception_handler(_: Request, exc: SanitizationError):
