@@ -1,56 +1,61 @@
 # Secret Vault
 
-Secret Vault is a minimal one-time/expiring secret sharing service. It exposes a FastAPI backend that encrypts sensitive text with Fernet, stores the encrypted payload in Redis with either a TTL or one-time view semantics, and serves a React + Tailwind front-end for creating and unlocking secrets without leaking them to link previews.
+A minimal one-time/expiring secret sharing service. Encrypts sensitive text with Fernet, stores the encrypted payload in Redis with either a TTL or one-time view semantics, and serves a React + Tailwind front-end for creating and unlocking secrets without leaking them to link previews.
 
 ## Features
+
 - **Time- or view-based expiration**: Redis TTL clears time-based secrets automatically; one-time secrets are deleted immediately after first retrieval.
-- **Client-friendly unlock flow**: Front-end collects the passphrase (default `uvu`) and calls the unlock endpoint so previews never see the secret.
+- **Client-friendly unlock flow**: Front-end collects the passphrase and calls the unlock endpoint so previews never see the secret.
 - **Password generator**: Generate deterministic passwords from an input pattern through the `/api/generator` endpoint.
 - **Hardened responses**: Custom middleware sets HSTS, X-Content-Type-Options, and X-Frame-Options headers for safer delivery.
+- **Input sanitization**: HTML content is sanitized using bleach to prevent XSS attacks.
 
-## Project structure
-- `backend/` – FastAPI application (`backend/app/main.py`) with Redis storage, encryption helpers, and request models. Dockerfile builds a production image.
-- `frontend/` – Vite + React UI that talks to the API and prompts for the passphrase. Tailwind is configured via `tailwind.config.js`.
-- `docker-compose.yml` – Orchestrates Redis, the backend, and the frontend for local development.
+## Project Structure
 
-## Prerequisites
-- Docker and Docker Compose
-- A Fernet key for encryption. You can generate one with:
-  ```bash
-  python - <<'PY'
-  from cryptography.fernet import Fernet
-  print(Fernet.generate_key().decode())
-  PY
-  ```
+```
+├── backend/          # FastAPI application with Redis storage and encryption
+│   └── app/
+│       ├── main.py   # API endpoints and middleware
+│       ├── config.py # Environment-based configuration
+│       └── utils.py  # Encryption and sanitization helpers
+├── frontend/         # Vite + React + Tailwind UI
+├── docker-compose.yml
+└── setup.sh          # Generates .env and self-signed certificates
+```
 
-## Configuration
-The services read their settings from environment variables:
+## Quick Start
 
-### Backend
-- `SECRET_REDIS_URL` – Redis connection string (defaults to `redis://redis:6379/0` in Compose).
-- `SECRET_FRONTEND_ORIGIN` – Allowed origin for CORS (defaults to `http://localhost:5173`).
-- `SECRET_FERNET_KEY` – Base64-encoded Fernet key **(required)**.
-- `SECRET_DEFAULT_TTL_SECONDS` – Default TTL for time-based secrets (defaults to 3600).
-- `SECRET_ONE_TIME_FALLBACK_TTL_SECONDS` – TTL applied to one-time secrets if not set by client (see `backend/app/config.py`).
-
-### Frontend
-- `VITE_API_BASE` – Base URL for API calls (defaults to `https://localhost/api` in Compose).
-
-## Running with Docker Compose
-1. Run the setup script to create `.env` with a Fernet key and generate a self-signed certificate + key for HTTPS:
+1. Run the setup script to create `.env` with a Fernet key and generate self-signed certificates:
    ```bash
    ./setup.sh
    ```
+
 2. Start the stack:
    ```bash
    docker compose up --build
    ```
-3. Access the UI at https://localhost:5173 and the API at https://localhost/docs.
 
-Compose automatically starts Redis and wires the backend and frontend together. Stopping the Compose stack will clear in-memory secrets unless you add Redis persistence. The backend listens on port `SECRET_BACKEND_PORT` (default 8443) and is exposed on host port 443 via Docker Compose.
+3. Access the UI at https://localhost:5173 and the API docs at https://localhost/docs.
 
-## Manual development setup
-If you prefer running services manually:
+## Configuration
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SECRET_FERNET_KEY` | Yes | — | Base64-encoded Fernet encryption key |
+| `SECRET_REDIS_URL` | No | `redis://redis:6379/0` | Redis connection string |
+| `SECRET_FRONTEND_ORIGIN` | No | `https://localhost` | Allowed origin for CORS |
+| `SECRET_DEFAULT_TTL_SECONDS` | No | `3600` | Default TTL for time-based secrets |
+| `SECRET_ONE_TIME_FALLBACK_TTL_SECONDS` | No | `604800` | Fallback TTL for one-time secrets |
+| `VITE_API_BASE` | No | `https://localhost/api` | Frontend API base URL |
+
+Generate a Fernet key with:
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+## Manual Development Setup
 
 ### Backend
 ```bash
@@ -71,4 +76,22 @@ npm install
 VITE_API_BASE="http://localhost:8000/api" npm run dev -- --host --port 5173
 ```
 
-With both services running, the UI will create secrets via the FastAPI endpoints and Redis will handle TTL and one-time deletion automatically.
+## Production Deployment
+
+For production use:
+
+1. **Use proper TLS certificates** (e.g., Let's Encrypt) instead of self-signed certificates.
+2. **Set `SECRET_FRONTEND_ORIGIN`** to your production domain for CORS.
+3. **Configure Redis persistence** if you need secrets to survive container restarts.
+4. **Use strong, unique passphrases** for sensitive secrets.
+
+## Security Notes
+
+- Secrets are encrypted at rest using Fernet symmetric encryption.
+- The encryption key (`SECRET_FERNET_KEY`) must be kept secure and never committed to version control.
+- One-time secrets are immediately deleted from Redis after retrieval.
+- All secrets have a maximum TTL to prevent indefinite storage.
+
+## License
+
+MIT
