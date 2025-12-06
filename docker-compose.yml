@@ -4,8 +4,8 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --save '' --appendonly no
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
 
   backend:
     build:
@@ -40,6 +40,7 @@ services:
     environment:
       VITE_API_BASE: ${VITE_API_BASE:-https://localhost/api}
       FRONTEND_PORT: ${FRONTEND_PORT:-5173}
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
       TLS_CERT_FILE: ${TLS_CERT_FILE:-/certs/localhost.crt}
       TLS_KEY_FILE: ${TLS_KEY_FILE:-/certs/localhost.key}
     ports:

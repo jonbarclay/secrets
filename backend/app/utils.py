@@ -1,26 +1,10 @@
-import html
-import os
-import re
 import secrets
 import string
 import uuid
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List
 
 import bcrypt
-import bleach
 from cryptography.fernet import Fernet
-
-FORBIDDEN_PATTERNS: List[re.Pattern[str]] = [
-    re.compile(pattern, re.IGNORECASE)
-    for pattern in [
-        r"<\s*script",
-        r"select\s+.*from",
-        r"delete\s+from",
-        r"drop\s+table",
-        r"insert\s+into",
-        r"--",
-    ]
-]
 
 DEFAULT_PASSWORD = "uvu"
 WORD_LIST = [
@@ -35,21 +19,8 @@ WORD_LIST = [
 ]
 
 
-class SanitizationError(ValueError):
-    """Raised when input contains disallowed content."""
-
-
 class PasswordPatternError(ValueError):
     """Raised when a password pattern cannot be parsed."""
-
-
-def sanitize_plaintext(value: str) -> str:
-    cleaned = bleach.clean(value, strip=True, tags=[], attributes={})
-    cleaned = html.escape(cleaned, quote=True)
-    for pattern in FORBIDDEN_PATTERNS:
-        if pattern.search(cleaned):
-            raise SanitizationError("Input contains forbidden content")
-    return cleaned
 
 
 def generate_uuid() -> str:
