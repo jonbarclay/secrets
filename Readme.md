@@ -34,20 +34,20 @@ The services read their settings from environment variables:
 - `SECRET_ONE_TIME_FALLBACK_TTL_SECONDS` – TTL applied to one-time secrets if not set by client (see `backend/app/config.py`).
 
 ### Frontend
-- `VITE_API_BASE` – Base URL for API calls (defaults to `http://localhost:8000/api` in Compose).
+- `VITE_API_BASE` – Base URL for API calls (defaults to `https://localhost/api` in Compose).
 
 ## Running with Docker Compose
-1. Export your Fernet key so Docker can pass it to the backend:
+1. Run the setup script to create `.env` with a Fernet key and generate a self-signed certificate + key for HTTPS:
    ```bash
-   export SECRET_FERNET_KEY="<your-generated-key>"
+   ./setup.sh
    ```
 2. Start the stack:
    ```bash
    docker compose up --build
    ```
-3. Access the UI at http://localhost:5173 and the API at http://localhost:8000/docs.
+3. Access the UI at https://localhost:5173 and the API at https://localhost/docs.
 
-Compose automatically starts Redis and wires the backend and frontend together. Stopping the Compose stack will clear in-memory secrets unless you add Redis persistence.
+Compose automatically starts Redis and wires the backend and frontend together. Stopping the Compose stack will clear in-memory secrets unless you add Redis persistence. The backend listens on port `SECRET_BACKEND_PORT` (default 8443) and is exposed on host port 443 via Docker Compose.
 
 ## Manual development setup
 If you prefer running services manually:

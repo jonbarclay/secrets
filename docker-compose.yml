@@ -11,23 +11,38 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    env_file:
+      - .env
     environment:
-      SECRET_REDIS_URL: redis://redis:6379/0
-      SECRET_FRONTEND_ORIGIN: http://localhost:5173
+      SECRET_REDIS_URL: ${SECRET_REDIS_URL:-redis://redis:6379/0}
+      SECRET_FRONTEND_ORIGIN: ${SECRET_FRONTEND_ORIGIN:-https://localhost}
       SECRET_FERNET_KEY: ${SECRET_FERNET_KEY}
-      SECRET_DEFAULT_TTL_SECONDS: 3600
+      SECRET_DEFAULT_TTL_SECONDS: ${SECRET_DEFAULT_TTL_SECONDS:-3600}
+      SECRET_ONE_TIME_FALLBACK_TTL_SECONDS: ${SECRET_ONE_TIME_FALLBACK_TTL_SECONDS:-3600}
+      SECRET_BACKEND_PORT: ${SECRET_BACKEND_PORT:-8443}
+      TLS_CERT_FILE: ${TLS_CERT_FILE:-/certs/localhost.crt}
+      TLS_KEY_FILE: ${TLS_KEY_FILE:-/certs/localhost.key}
     ports:
-      - "8000:8000"
+      - "443:${SECRET_BACKEND_PORT:-8443}"
     depends_on:
       - redis
+    volumes:
+      - ./certs:/certs:ro
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    env_file:
+      - .env
     environment:
-      VITE_API_BASE: http://localhost:8000/api
+      VITE_API_BASE: ${VITE_API_BASE:-https://localhost/api}
+      FRONTEND_PORT: ${FRONTEND_PORT:-5173}
+      TLS_CERT_FILE: ${TLS_CERT_FILE:-/certs/localhost.crt}
+      TLS_KEY_FILE: ${TLS_KEY_FILE:-/certs/localhost.key}
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5173}:${FRONTEND_PORT:-5173}"
     depends_on:
       - backend
+    volumes:
+      - ./certs:/certs:ro

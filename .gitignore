@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .env
+certs/
 node_modules/
 frontend/dist
 .vscode/
