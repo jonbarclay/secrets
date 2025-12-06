@@ -1,0 +1,33 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save '' --appendonly no
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SECRET_REDIS_URL: redis://redis:6379/0
+      SECRET_FRONTEND_ORIGIN: http://localhost:5173
+      SECRET_FERNET_KEY: ${SECRET_FERNET_KEY}
+      SECRET_DEFAULT_TTL_SECONDS: 3600
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      VITE_API_BASE: http://localhost:8000/api
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
