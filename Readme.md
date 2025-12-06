@@ -1,12 +1,74 @@
-Recommended Tech Stack
-• Backend: Python (FastAPI). It is modern, high-performance, and has excellent built-in data validation (Pydantic) which is crucial for input sanitization.
-• Database: Redis. This is ideal for this specific use case because Redis supports Time-To-Live (TTL) natively. You don't need to write cron jobs to delete old secrets; Redis will automatically vaporize them when the time is up.
-• Frontend: React + Tailwind CSS. This ensures the "modern, attractive, and responsive" requirement.
-• Container: Docker Compose (to bundle the App and Redis).
-Phase 1: The Architectural Plan
-Before generating code, here is the logic flow we will enforce to ensure security and solve the "Slack Link Preview" issue:
-1. Encryption: Secrets are encrypted before they are saved to Redis. The server stores the encrypted blob.
-2. The "Preview" Problem: When a link is generated, it does not automatically return the data. It loads a frontend page asking for the password (default: "uvu").
-3. Destruction:
-• If Time-based: Redis TTL handles it.
-• If One-time view: The API endpoint that fetches the secret triggers a DELETE command immediately after serving the response.
+# Secret Vault
+
+Secret Vault is a minimal one-time/expiring secret sharing service. It exposes a FastAPI backend that encrypts sensitive text with Fernet, stores the encrypted payload in Redis with either a TTL or one-time view semantics, and serves a React + Tailwind front-end for creating and unlocking secrets without leaking them to link previews.
+
+## Features
+- **Time- or view-based expiration**: Redis TTL clears time-based secrets automatically; one-time secrets are deleted immediately after first retrieval.
+- **Client-friendly unlock flow**: Front-end collects the passphrase (default `uvu`) and calls the unlock endpoint so previews never see the secret.
+- **Password generator**: Generate deterministic passwords from an input pattern through the `/api/generator` endpoint.
+- **Hardened responses**: Custom middleware sets HSTS, X-Content-Type-Options, and X-Frame-Options headers for safer delivery.
+
+## Project structure
+- `backend/` – FastAPI application (`backend/app/main.py`) with Redis storage, encryption helpers, and request models. Dockerfile builds a production image.
+- `frontend/` – Vite + React UI that talks to the API and prompts for the passphrase. Tailwind is configured via `tailwind.config.js`.
+- `docker-compose.yml` – Orchestrates Redis, the backend, and the frontend for local development.
+
+## Prerequisites
+- Docker and Docker Compose
+- A Fernet key for encryption. You can generate one with:
+  ```bash
+  python - <<'PY'
+  from cryptography.fernet import Fernet
+  print(Fernet.generate_key().decode())
+  PY
+  ```
+
+## Configuration
+The services read their settings from environment variables:
+
+### Backend
+- `SECRET_REDIS_URL` – Redis connection string (defaults to `redis://redis:6379/0` in Compose).
+- `SECRET_FRONTEND_ORIGIN` – Allowed origin for CORS (defaults to `http://localhost:5173`).
+- `SECRET_FERNET_KEY` – Base64-encoded Fernet key **(required)**.
+- `SECRET_DEFAULT_TTL_SECONDS` – Default TTL for time-based secrets (defaults to 3600).
+- `SECRET_ONE_TIME_FALLBACK_TTL_SECONDS` – TTL applied to one-time secrets if not set by client (see `backend/app/config.py`).
+
+### Frontend
+- `VITE_API_BASE` – Base URL for API calls (defaults to `http://localhost:8000/api` in Compose).
+
+## Running with Docker Compose
+1. Export your Fernet key so Docker can pass it to the backend:
+   ```bash
+   export SECRET_FERNET_KEY="<your-generated-key>"
+   ```
+2. Start the stack:
+   ```bash
+   docker compose up --build
+   ```
+3. Access the UI at http://localhost:5173 and the API at http://localhost:8000/docs.
+
+Compose automatically starts Redis and wires the backend and frontend together. Stopping the Compose stack will clear in-memory secrets unless you add Redis persistence.
+
+## Manual development setup
+If you prefer running services manually:
+
+### Backend
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export SECRET_REDIS_URL="redis://localhost:6379/0"
+export SECRET_FRONTEND_ORIGIN="http://localhost:5173"
+export SECRET_FERNET_KEY="<your-generated-key>"
+uvicorn app.main:app --reload --port 8000
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+VITE_API_BASE="http://localhost:8000/api" npm run dev -- --host --port 5173
+```
+
+With both services running, the UI will create secrets via the FastAPI endpoints and Redis will handle TTL and one-time deletion automatically.
