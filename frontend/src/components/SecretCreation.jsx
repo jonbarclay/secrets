@@ -15,7 +15,8 @@ const WORD_LIST = [
 export default function SecretCreation() {
   const [secret, setSecret] = useState('')
   const [passphrase, setPassphrase] = useState('')
-  const [ttlSeconds, setTtlSeconds] = useState(3600)
+  const [ttlValue, setTtlValue] = useState(7)
+  const [ttlUnit, setTtlUnit] = useState('days')
   const [expirationMethod, setExpirationMethod] = useState('one_time')
   const [link, setLink] = useState('')
   const [error, setError] = useState('')
@@ -95,11 +96,16 @@ export default function SecretCreation() {
     setLink('')
 
     try {
+      const ttlSeconds =
+        expirationMethod === 'time'
+          ? ttlValue * (ttlUnit === 'days' ? 86400 : ttlUnit === 'hours' ? 3600 : 60)
+          : undefined
+
       const response = await axios.post(`${API_BASE}/secret`, {
         secret,
         passphrase: passphrase || null,
         expiration_method: expirationMethod,
-        ttl_seconds: expirationMethod === 'time' ? Number(ttlSeconds) : undefined
+        ttl_seconds: ttlSeconds
       })
 
       const id = response.data.id
@@ -260,8 +266,8 @@ export default function SecretCreation() {
                                 type="button"
                                 onClick={() => setExpirationMethod('one_time')}
                                 className={`px-4 py-2 text-sm font-medium border rounded-l-lg flex-1 transition-colors ${
-                                    expirationMethod === 'one_time' 
-                                    ? 'bg-uvu-600 text-white border-uvu-600' 
+                                    expirationMethod === 'one_time'
+                                    ? 'bg-uvu-600 text-white border-uvu-600'
                                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
@@ -271,24 +277,33 @@ export default function SecretCreation() {
                                 type="button"
                                 onClick={() => setExpirationMethod('time')}
                                 className={`px-4 py-2 text-sm font-medium border rounded-r-lg flex-1 transition-colors ${
-                                    expirationMethod === 'time' 
-                                    ? 'bg-uvu-600 text-white border-uvu-600' 
+                                    expirationMethod === 'time'
+                                    ? 'bg-uvu-600 text-white border-uvu-600'
                                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                                 }`}
                             >
                                 Timer
                             </button>
                         </div>
-                         {expirationMethod === 'time' && (
-                            <div className="mt-2">
+                        {expirationMethod === 'time' && (
+                            <div className="mt-2 grid grid-cols-3 gap-2">
                                 <input
-                                    className="input w-full"
+                                    className="input w-full col-span-2"
                                     type="number"
-                                    min="60"
-                                    value={ttlSeconds}
-                                    onChange={(e) => setTtlSeconds(e.target.value)}
-                                    placeholder="Seconds"
+                                    min="1"
+                                    value={ttlValue}
+                                    onChange={(e) => setTtlValue(Number(e.target.value))}
+                                    placeholder="Duration"
                                 />
+                                <select
+                                    className="input w-full"
+                                    value={ttlUnit}
+                                    onChange={(e) => setTtlUnit(e.target.value)}
+                                >
+                                    <option value="days">Days</option>
+                                    <option value="hours">Hours</option>
+                                    <option value="minutes">Minutes</option>
+                                </select>
                             </div>
                         )}
                     </div>
